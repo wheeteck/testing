@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classic University Certificate Generator</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;1,400&display=swap');
+        
+        body {
+            font-family: 'Crimson Text', serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            color: #e2e8f0;
+            text-align: center;
+            font-style: italic;
+            margin-bottom: 30px;
+        }
+
+        .form-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .form-title {
+            color: #2d3748;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            color: #4a5568;
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        input, select {
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: 'Crimson Text', serif;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: 'Playfair Display', serif;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .canvas-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        canvas {
+            max-width: 100%;
+            border: 3px solid #e2e8f0;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .template-preview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .template-option {
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .template-option:hover {
+            border-color: #667eea;
+            background: #f7fafc;
+        }
+
+        .template-option.active {
+            border-color: #667eea;
+            background: #edf2f7;
+        }
+
+        .preview-text {
+            font-size: 12px;
+            color: #4a5568;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎓 Classic University Certificate</h1>
+        <p class="subtitle">Create prestigious academic certificates with authentic university styling</p>
+
+        <div class="form-section">
+            <div class="form-title">Certificate Details</div>
+            
+            <div class="template-preview">
+                <div class="template-option active" onclick="selectTemplate('harvard')">
+                    <strong>Harvard Style</strong>
+                    <div class="preview-text">Crimson & Gold • Traditional</div>
+                </div>
+                <div class="template-option" onclick="selectTemplate('oxford')">
+                    <strong>Oxford Style</strong>
+                    <div class="preview-text">Navy & Gold • Classical</div>
+                </div>
+                <div class="template-option" onclick="selectTemplate('cambridge')">
+                    <strong>Cambridge Style</strong>
+                    <div class="preview-text">Blue & Silver • Elegant</div>
+                </div>
+                <div class="template-option" onclick="selectTemplate('yale')">
+                    <strong>Yale Style</strong>
+                    <div class="preview-text">Blue & White • Distinguished</div>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="universityName">University Name</label>
+                    <input type="text" id="universityName" value="Harvard University" placeholder="Enter university name">
+                </div>
+                
+                <div class="form-group">
+                    <label for="degreeType">Degree Type</label>
+                    <select id="degreeType">
+                        <option value="Bachelor of Arts">Bachelor of Arts</option>
+                        <option value="Bachelor of Science">Bachelor of Science</option>
+                        <option value="Master of Arts">Master of Arts</option>
+                        <option value="Master of Science">Master of Science</option>
+                        <option value="Doctor of Philosophy">Doctor of Philosophy</option>
+                        <option value="Certificate of Completion">Certificate of Completion</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="recipientName">Recipient Name</label>
+                    <input type="text" id="recipientName" value="Alexandra Elizabeth Johnson" placeholder="Full name of recipient">
+                </div>
+
+                <div class="form-group">
+                    <label for="fieldOfStudy">Field of Study</label>
+                    <input type="text" id="fieldOfStudy" value="Computer Science" placeholder="Major or field">
+                </div>
+
+                <div class="form-group">
+                    <label for="graduationDate">Graduation Date</label>
+                    <input type="text" id="graduationDate" value="May 15, 2024" placeholder="Month Day, Year">
+                </div>
+
+                <div class="form-group">
+                    <label for="honors">Honors (Optional)</label>
+                    <select id="honors">
+                        <option value="">No Honors</option>
+                        <option value="Cum Laude">Cum Laude</option>
+                        <option value="Magna Cum Laude">Magna Cum Laude</option>
+                        <option value="Summa Cum Laude">Summa Cum Laude</option>
+                        <option value="With Distinction">With Distinction</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn-primary" onclick="generateCertificate()">Generate Certificate</button>
+                <button class="btn-secondary" onclick="downloadCertificate()">Download High-Res PNG</button>
+                <button class="btn-success" onclick="downloadPDF()">Download PDF</button>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="certificateCanvas" width="1200" height="800"></canvas>
+        </div>
+    </div>
+
+    <script>
+        let currentTemplate = 'harvard';
+
+        const templates = {
+            harvard: {
+                primaryColor: '#A41E22',
+                secondaryColor: '#FFD700',
+                accentColor: '#8B0000',
+                bgColor: '#FFF8F0',
+                borderColor: '#A41E22'
+            },
+            oxford: {
+                primaryColor: '#002147',
+                secondaryColor: '#FFD700',
+                accentColor: '#1B365D',
+                bgColor: '#F8F9FA',
+                borderColor: '#002147'
+            },
+            cambridge: {
+                primaryColor: '#003B71',
+                secondaryColor: '#C0C0C0',
+                accentColor: '#0056A0',
+                bgColor: '#F0F8FF',
+                borderColor: '#003B71'
+            },
+            yale: {
+                primaryColor: '#00356B',
+                secondaryColor: '#FFFFFF',
+                accentColor: '#286DC0',
+                bgColor: '#F5F5F5',
+                borderColor: '#00356B'
+            }
+        };
+
+        function selectTemplate(templateName) {
+            currentTemplate = templateName;
+            
+            // Update active template
+            document.querySelectorAll('.template-option').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update university name based on template
+            const universityNames = {
+                harvard: 'Harvard University',
+                oxford: 'University of Oxford',
+                cambridge: 'University of Cambridge',
+                yale: 'Yale University'
+            };
+            
+            document.getElementById('universityName').value = universityNames[templateName];
+            generateCertificate();
+        }
+
+        function generateCertificate() {
+            const canvas = document.getElementById('certificateCanvas');
+            const ctx = canvas.getContext('2d');
+            const template = templates[currentTemplate];
+            
+            // Get form data
+            const universityName = document.getElementById('universityName').value || 'University Name';
+            const degreeType = document.getElementById('degreeType').value;
+            const recipientName = document.getElementById('recipientName').value || 'Student Name';
+            const fieldOfStudy = document.getElementById('fieldOfStudy').value || 'Field of Study';
+            const graduationDate = document.getElementById('graduationDate').value || 'Date';
+            const honors = document.getElementById('honors').value;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Background
+            ctx.fillStyle = template.bgColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Ornate border
+            drawOrnateBorder(ctx, template);
+
+            // University seal/emblem area
+            drawUniversitySeal(ctx, template, universityName);
+
+            // Main title
+            ctx.fillStyle = template.primaryColor;
+            ctx.font = 'bold 72px serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(universityName.toUpperCase(), canvas.width / 2, 180);
+
+            // Decorative line
+            ctx.strokeStyle = template.secondaryColor;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(200, 220);
+            ctx.lineTo(canvas.width - 200, 220);
+            ctx.stroke();
+
+            // Certificate type
+            ctx.fillStyle = template.accentColor;
+            ctx.font = '36px serif';
+            ctx.fillText('CERTIFIES THAT', canvas.width / 2, 280);
+
+            // Recipient name (most prominent)
+            ctx.fillStyle = template.primaryColor;
+            ctx.font = 'italic bold 56px serif';
+            ctx.fillText(recipientName, canvas.width / 2, 360);
+
+            // Honors (if any)
+            if (honors) {
+                ctx.fillStyle = template.secondaryColor;
+                ctx.font = 'bold 28px serif';
+                ctx.fillText(honors, canvas.width / 2, 400);
+            }
+
+            // Degree conferment text
+            ctx.fillStyle = template.accentColor;
+            ctx.font = '32px serif';
+            const y1 = honors ? 460 : 430;
+            ctx.fillText('has fulfilled the requirements for the degree of', canvas.width / 2, y1);
+
+            // Degree type
+            ctx.fillStyle = template.primaryColor;
+            ctx.font = 'bold 42px serif';
+            const y2 = honors ? 520 : 490;
+            ctx.fillText(degreeType.toUpperCase(), canvas.width / 2, y2);
+
+            // Field of study
+            ctx.fillStyle = template.accentColor;
+            ctx.font = '36px serif';
+            const y3 = honors ? 570 : 540;
+            ctx.fillText(`in ${fieldOfStudy}`, canvas.width / 2, y3);
+
+            // Date and signatures area
+            const y4 = honors ? 650 : 620;
+            
+            // Date
+            ctx.fillStyle = template.primaryColor;
+            ctx.font = '24px serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(`Given this ${graduationDate}`, 150, y4);
+
+            // Signature lines
+            ctx.strokeStyle = template.borderColor;
+            ctx.lineWidth = 2;
+            
+            // President signature
+            ctx.beginPath();
+            ctx.moveTo(600, y4 + 40);
+            ctx.lineTo(850, y4 + 40);
+            ctx.stroke();
+            
+            ctx.font = '18px serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('President', 725, y4 + 60);
+
+            // Dean signature  
+            ctx.beginPath();
+            ctx.moveTo(900, y4 + 40);
+            ctx.lineTo(1150, y4 + 40);
+            ctx.stroke();
+            
+            ctx.fillText('Dean', 1025, y4 + 60);
+
+            // Official seal
+            drawOfficialSeal(ctx, template, 150, y4 + 20);
+
+            // Latin motto (decorative)
+            ctx.fillStyle = template.accentColor;
+            ctx.font = 'italic 20px serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Veritas • Scientia • Virtus', canvas.width / 2, canvas.height - 40);
+        }
+
+        function drawOrnateBorder(ctx, template) {
+            const margin = 30;
+            const innerMargin = 60;
+            
+            // Outer border
+            ctx.strokeStyle = template.borderColor;
+            ctx.lineWidth = 8;
+            ctx.strokeRect(margin, margin, canvas.width - 2 * margin, canvas.height - 2 * margin);
+            
+            // Inner decorative border
+            ctx.strokeStyle = template.secondaryColor;
+            ctx.lineWidth = 4;
+            ctx.strokeRect(innerMargin, innerMargin, canvas.width - 2 * innerMargin, canvas.height - 2 * innerMargin);
+            
+            // Corner decorations
+            drawCornerDecoration(ctx, template, innerMargin, innerMargin); // Top left
+            drawCornerDecoration(ctx, template, canvas.width - innerMargin, innerMargin); // Top right
+            drawCornerDecoration(ctx, template, innerMargin, canvas.height - innerMargin); // Bottom left
+            drawCornerDecoration(ctx, template, canvas.width - innerMargin, canvas.height - innerMargin); // Bottom right
+        }
+
+        function drawCornerDecoration(ctx, template, x, y) {
+            ctx.fillStyle = template.secondaryColor;
+            ctx.save();
+            ctx.translate(x, y);
+            
+            // Draw ornate corner design
+            ctx.beginPath();
+            ctx.arc(0, 0, 15, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Decorative lines
+            ctx.strokeStyle = template.secondaryColor;
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 3; i++) {
+                ctx.beginPath();
+                ctx.moveTo(-30 + i * 10, -30 + i * 10);
+                ctx.lineTo(-10 + i * 5, -10 + i * 5);
+                ctx.stroke();
+            }
+            
+            ctx.restore();
+        }
+
+        function drawUniversitySeal(ctx, template, universityName) {
+            const centerX = canvas.width / 2;
+            const centerY = 120;
+            const radius = 40;
+            
+            // Shield background
+            ctx.fillStyle = template.primaryColor;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Shield border
+            ctx.strokeStyle = template.secondaryColor;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            
+            // University initial or symbol
+            ctx.fillStyle = template.secondaryColor;
+            ctx.font = 'bold 36px serif';
+            ctx.textAlign = 'center';
+            const initial = universityName.charAt(0);
+            ctx.fillText(initial, centerX, centerY + 12);
+        }
+
+        function drawOfficialSeal(ctx, template, x, y) {
+            const radius = 35;
+            
+            // Seal background
+            ctx.fillStyle = template.primaryColor;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Seal border
+            ctx.strokeStyle = template.secondaryColor;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            
+            // Seal text
+            ctx.fillStyle = template.secondaryColor;
+            ctx.font = 'bold 12px serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('OFFICIAL', x, y - 5);
+            ctx.fillText('SEAL', x, y + 8);
+        }
+
+        function downloadCertificate() {
+            const canvas = document.getElementById('certificateCanvas');
+            const link = document.createElement('a');
+            link.download = `${document.getElementById('recipientName').value.replace(/\s+/g, '_')}_Certificate.png`;
+            link.href = canvas.toDataURL('image/png', 1.0);
+            link.click();
+        }
+
+        function downloadPDF() {
+            // For a simple PDF conversion, we'll use the canvas as an image in a new window
+            // In a real application, you might want to use a library like jsPDF
+            const canvas = document.getElementById('certificateCanvas');
+            const imgData = canvas.toDataURL('image/png', 1.0);
+            
+            const printWindow = window.open('', '', 'width=1200,height=800');
+            printWindow.document.write(`
+                <html>
+                <head><title>Certificate</title></head>
+                <body style="margin:0; display:flex; justify-content:center; align-items:center; min-height:100vh;">
+                    <img src="${imgData}" style="max-width:100%; max-height:100%;">
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.print();
+        }
+
+        // Initialize with default certificate
+        window.onload = function() {
+            generateCertificate();
+        }
+    </script>
+</body>
+</html>
