@@ -172,6 +172,28 @@
             color: #4a5568;
             margin-top: 5px;
         }
+
+        .status {
+            text-align: center;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .status.show {
+            display: block;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
     </style>
 </head>
 <body>
@@ -183,19 +205,19 @@
             <div class="form-title">Certificate Details</div>
             
             <div class="template-preview">
-                <div class="template-option active" onclick="selectTemplate('harvard')">
+                <div class="template-option active" data-template="harvard">
                     <strong>Harvard Style</strong>
                     <div class="preview-text">Crimson & Gold • Traditional</div>
                 </div>
-                <div class="template-option" onclick="selectTemplate('oxford')">
+                <div class="template-option" data-template="oxford">
                     <strong>Oxford Style</strong>
                     <div class="preview-text">Navy & Gold • Classical</div>
                 </div>
-                <div class="template-option" onclick="selectTemplate('cambridge')">
+                <div class="template-option" data-template="cambridge">
                     <strong>Cambridge Style</strong>
                     <div class="preview-text">Blue & Silver • Elegant</div>
                 </div>
-                <div class="template-option" onclick="selectTemplate('yale')">
+                <div class="template-option" data-template="yale">
                     <strong>Yale Style</strong>
                     <div class="preview-text">Blue & White • Distinguished</div>
                 </div>
@@ -247,10 +269,12 @@
             </div>
 
             <div class="button-group">
-                <button class="btn-primary" onclick="generateCertificate()">Generate Certificate</button>
-                <button class="btn-secondary" onclick="downloadCertificate()">Download High-Res PNG</button>
-                <button class="btn-success" onclick="downloadPDF()">Download PDF</button>
+                <button class="btn-primary" id="generateBtn">Generate Certificate</button>
+                <button class="btn-secondary" id="downloadBtn">Download PNG</button>
+                <button class="btn-success" id="printBtn">Print/PDF</button>
             </div>
+
+            <div class="status" id="status"></div>
         </div>
 
         <div class="canvas-container">
@@ -259,7 +283,10 @@
     </div>
 
     <script>
+        // Global variables
         let currentTemplate = 'harvard';
+        let canvas, ctx;
+        let fontsLoaded = false;
 
         const templates = {
             harvard: {
@@ -292,139 +319,206 @@
             }
         };
 
+        const universityNames = {
+            harvard: 'Harvard University',
+            oxford: 'University of Oxford',
+            cambridge: 'University of Cambridge',
+            yale: 'Yale University'
+        };
+
+        // Initialize everything when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        function initializeApp() {
+            console.log('Initializing certificate generator...');
+            
+            // Get canvas and context
+            canvas = document.getElementById('certificateCanvas');
+            if (!canvas) {
+                showStatus('Canvas element not found!', 'error');
+                return;
+            }
+            
+            ctx = canvas.getContext('2d');
+            if (!ctx) {
+                showStatus('Canvas context not available!', 'error');
+                return;
+            }
+
+            // Wait for fonts to load
+            waitForFonts().then(() => {
+                fontsLoaded = true;
+                showStatus('Fonts loaded successfully!', 'success');
+                generateCertificate();
+            }).catch(() => {
+                // Generate anyway with fallback fonts
+                fontsLoaded = false;
+                showStatus('Using fallback fonts', 'error');
+                generateCertificate();
+            });
+
+            // Set up event listeners
+            setupEventListeners();
+            
+            showStatus('Application initialized', 'success');
+        }
+
+        function waitForFonts() {
+            return new Promise((resolve, reject) => {
+                if (document.fonts && document.fonts.ready) {
+                    document.fonts.ready.then(resolve).catch(reject);
+                } else {
+                    // Fallback: wait 2 seconds for fonts to load
+                    setTimeout(resolve, 2000);
+                }
+            });
+        }
+
+        function setupEventListeners() {
+            // Template selection
+            document.querySelectorAll('.template-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    selectTemplate(this.dataset.template);
+                });
+            });
+
+            // Buttons
+            document.getElementById('generateBtn').addEventListener('click', generateCertificate);
+            document.getElementById('downloadBtn').addEventListener('click', downloadCertificate);
+            document.getElementById('printBtn').addEventListener('click', printCertificate);
+
+            // Auto-generate on input change
+            document.querySelectorAll('input, select').forEach(input => {
+                input.addEventListener('change', generateCertificate);
+                input.addEventListener('input', debounce(generateCertificate, 500));
+            });
+        }
+
         function selectTemplate(templateName) {
+            if (!templates[templateName]) return;
+            
             currentTemplate = templateName;
             
-            // Update active template
+            // Update active template visual
             document.querySelectorAll('.template-option').forEach(el => el.classList.remove('active'));
-            event.target.classList.add('active');
+            document.querySelector(`[data-template="${templateName}"]`).classList.add('active');
             
-            // Update university name based on template
-            const universityNames = {
-                harvard: 'Harvard University',
-                oxford: 'University of Oxford',
-                cambridge: 'University of Cambridge',
-                yale: 'Yale University'
-            };
-            
+            // Update university name
             document.getElementById('universityName').value = universityNames[templateName];
+            
             generateCertificate();
         }
 
         function generateCertificate() {
-            const canvas = document.getElementById('certificateCanvas');
-            const ctx = canvas.getContext('2d');
-            const template = templates[currentTemplate];
-            
-            // Get form data
-            const universityName = document.getElementById('universityName').value || 'University Name';
-            const degreeType = document.getElementById('degreeType').value;
-            const recipientName = document.getElementById('recipientName').value || 'Student Name';
-            const fieldOfStudy = document.getElementById('fieldOfStudy').value || 'Field of Study';
-            const graduationDate = document.getElementById('graduationDate').value || 'Date';
-            const honors = document.getElementById('honors').value;
-
-            // Clear canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Background
-            ctx.fillStyle = template.bgColor;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Ornate border
-            drawOrnateBorder(ctx, template);
-
-            // University seal/emblem area
-            drawUniversitySeal(ctx, template, universityName);
-
-            // Main title
-            ctx.fillStyle = template.primaryColor;
-            ctx.font = 'bold 72px serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(universityName.toUpperCase(), canvas.width / 2, 180);
-
-            // Decorative line
-            ctx.strokeStyle = template.secondaryColor;
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(200, 220);
-            ctx.lineTo(canvas.width - 200, 220);
-            ctx.stroke();
-
-            // Certificate type
-            ctx.fillStyle = template.accentColor;
-            ctx.font = '36px serif';
-            ctx.fillText('CERTIFIES THAT', canvas.width / 2, 280);
-
-            // Recipient name (most prominent)
-            ctx.fillStyle = template.primaryColor;
-            ctx.font = 'italic bold 56px serif';
-            ctx.fillText(recipientName, canvas.width / 2, 360);
-
-            // Honors (if any)
-            if (honors) {
-                ctx.fillStyle = template.secondaryColor;
-                ctx.font = 'bold 28px serif';
-                ctx.fillText(honors, canvas.width / 2, 400);
+            if (!canvas || !ctx) {
+                showStatus('Canvas not ready', 'error');
+                return;
             }
 
-            // Degree conferment text
-            ctx.fillStyle = template.accentColor;
-            ctx.font = '32px serif';
-            const y1 = honors ? 460 : 430;
-            ctx.fillText('has fulfilled the requirements for the degree of', canvas.width / 2, y1);
+            try {
+                showStatus('Generating certificate...', 'success');
+                
+                const template = templates[currentTemplate];
+                
+                // Get form data
+                const universityName = document.getElementById('universityName').value || 'University Name';
+                const degreeType = document.getElementById('degreeType').value;
+                const recipientName = document.getElementById('recipientName').value || 'Student Name';
+                const fieldOfStudy = document.getElementById('fieldOfStudy').value || 'Field of Study';
+                const graduationDate = document.getElementById('graduationDate').value || 'Date';
+                const honors = document.getElementById('honors').value;
 
-            // Degree type
-            ctx.fillStyle = template.primaryColor;
-            ctx.font = 'bold 42px serif';
-            const y2 = honors ? 520 : 490;
-            ctx.fillText(degreeType.toUpperCase(), canvas.width / 2, y2);
+                // Clear canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Field of study
-            ctx.fillStyle = template.accentColor;
-            ctx.font = '36px serif';
-            const y3 = honors ? 570 : 540;
-            ctx.fillText(`in ${fieldOfStudy}`, canvas.width / 2, y3);
+                // Background
+                ctx.fillStyle = template.bgColor;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Date and signatures area
-            const y4 = honors ? 650 : 620;
-            
-            // Date
-            ctx.fillStyle = template.primaryColor;
-            ctx.font = '24px serif';
-            ctx.textAlign = 'left';
-            ctx.fillText(`Given this ${graduationDate}`, 150, y4);
+                // Ornate border
+                drawOrnateBorder(ctx, template);
 
-            // Signature lines
-            ctx.strokeStyle = template.borderColor;
-            ctx.lineWidth = 2;
-            
-            // President signature
-            ctx.beginPath();
-            ctx.moveTo(600, y4 + 40);
-            ctx.lineTo(850, y4 + 40);
-            ctx.stroke();
-            
-            ctx.font = '18px serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('President', 725, y4 + 60);
+                // University seal/emblem area
+                drawUniversitySeal(ctx, template, universityName);
 
-            // Dean signature  
-            ctx.beginPath();
-            ctx.moveTo(900, y4 + 40);
-            ctx.lineTo(1150, y4 + 40);
-            ctx.stroke();
-            
-            ctx.fillText('Dean', 1025, y4 + 60);
+                // Main title
+                ctx.fillStyle = template.primaryColor;
+                ctx.font = fontsLoaded ? 'bold 72px "Playfair Display", serif' : 'bold 72px serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(universityName.toUpperCase(), canvas.width / 2, 180);
 
-            // Official seal
-            drawOfficialSeal(ctx, template, 150, y4 + 20);
+                // Decorative line
+                ctx.strokeStyle = template.secondaryColor;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(200, 220);
+                ctx.lineTo(canvas.width - 200, 220);
+                ctx.stroke();
 
-            // Latin motto (decorative)
-            ctx.fillStyle = template.accentColor;
-            ctx.font = 'italic 20px serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('Veritas • Scientia • Virtus', canvas.width / 2, canvas.height - 40);
+                // Certificate type
+                ctx.fillStyle = template.accentColor;
+                ctx.font = fontsLoaded ? '36px "Crimson Text", serif' : '36px serif';
+                ctx.fillText('CERTIFIES THAT', canvas.width / 2, 280);
+
+                // Recipient name (most prominent)
+                ctx.fillStyle = template.primaryColor;
+                ctx.font = fontsLoaded ? 'italic bold 56px "Playfair Display", serif' : 'italic bold 56px serif';
+                ctx.fillText(recipientName, canvas.width / 2, 360);
+
+                // Honors (if any)
+                let yOffset = 0;
+                if (honors) {
+                    ctx.fillStyle = template.secondaryColor;
+                    ctx.font = fontsLoaded ? 'bold 28px "Crimson Text", serif' : 'bold 28px serif';
+                    ctx.fillText(honors, canvas.width / 2, 400);
+                    yOffset = 40;
+                }
+
+                // Degree conferment text
+                ctx.fillStyle = template.accentColor;
+                ctx.font = fontsLoaded ? '32px "Crimson Text", serif' : '32px serif';
+                ctx.fillText('has fulfilled the requirements for the degree of', canvas.width / 2, 430 + yOffset);
+
+                // Degree type
+                ctx.fillStyle = template.primaryColor;
+                ctx.font = fontsLoaded ? 'bold 42px "Playfair Display", serif' : 'bold 42px serif';
+                ctx.fillText(degreeType.toUpperCase(), canvas.width / 2, 490 + yOffset);
+
+                // Field of study
+                ctx.fillStyle = template.accentColor;
+                ctx.font = fontsLoaded ? '36px "Crimson Text", serif' : '36px serif';
+                ctx.fillText(`in ${fieldOfStudy}`, canvas.width / 2, 540 + yOffset);
+
+                // Date and signatures area
+                const baseY = 620 + yOffset;
+                
+                // Date
+                ctx.fillStyle = template.primaryColor;
+                ctx.font = fontsLoaded ? '24px "Crimson Text", serif' : '24px serif';
+                ctx.textAlign = 'left';
+                ctx.fillText(`Given this ${graduationDate}`, 150, baseY);
+
+                // Signature lines and labels
+                drawSignatureArea(ctx, template, baseY);
+
+                // Official seal
+                drawOfficialSeal(ctx, template, 150, baseY + 20);
+
+                // Latin motto (decorative)
+                ctx.fillStyle = template.accentColor;
+                ctx.font = fontsLoaded ? 'italic 20px "Crimson Text", serif' : 'italic 20px serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('Veritas • Scientia • Virtus', canvas.width / 2, canvas.height - 40);
+
+                showStatus('Certificate generated successfully!', 'success');
+                
+            } catch (error) {
+                console.error('Error generating certificate:', error);
+                showStatus('Error generating certificate: ' + error.message, 'error');
+            }
         }
 
         function drawOrnateBorder(ctx, template) {
@@ -442,10 +536,10 @@
             ctx.strokeRect(innerMargin, innerMargin, canvas.width - 2 * innerMargin, canvas.height - 2 * innerMargin);
             
             // Corner decorations
-            drawCornerDecoration(ctx, template, innerMargin, innerMargin); // Top left
-            drawCornerDecoration(ctx, template, canvas.width - innerMargin, innerMargin); // Top right
-            drawCornerDecoration(ctx, template, innerMargin, canvas.height - innerMargin); // Bottom left
-            drawCornerDecoration(ctx, template, canvas.width - innerMargin, canvas.height - innerMargin); // Bottom right
+            drawCornerDecoration(ctx, template, innerMargin + 20, innerMargin + 20);
+            drawCornerDecoration(ctx, template, canvas.width - innerMargin - 20, innerMargin + 20);
+            drawCornerDecoration(ctx, template, innerMargin + 20, canvas.height - innerMargin - 20);
+            drawCornerDecoration(ctx, template, canvas.width - innerMargin - 20, canvas.height - innerMargin - 20);
         }
 
         function drawCornerDecoration(ctx, template, x, y) {
@@ -455,16 +549,17 @@
             
             // Draw ornate corner design
             ctx.beginPath();
-            ctx.arc(0, 0, 15, 0, Math.PI * 2);
+            ctx.arc(0, 0, 12, 0, Math.PI * 2);
             ctx.fill();
             
-            // Decorative lines
+            // Decorative radiating lines
             ctx.strokeStyle = template.secondaryColor;
             ctx.lineWidth = 2;
-            for (let i = 0; i < 3; i++) {
+            for (let i = 0; i < 8; i++) {
+                const angle = (i * Math.PI) / 4;
                 ctx.beginPath();
-                ctx.moveTo(-30 + i * 10, -30 + i * 10);
-                ctx.lineTo(-10 + i * 5, -10 + i * 5);
+                ctx.moveTo(Math.cos(angle) * 15, Math.sin(angle) * 15);
+                ctx.lineTo(Math.cos(angle) * 25, Math.sin(angle) * 25);
                 ctx.stroke();
             }
             
@@ -489,10 +584,34 @@
             
             // University initial or symbol
             ctx.fillStyle = template.secondaryColor;
-            ctx.font = 'bold 36px serif';
+            ctx.font = fontsLoaded ? 'bold 36px "Playfair Display", serif' : 'bold 36px serif';
             ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
             const initial = universityName.charAt(0);
-            ctx.fillText(initial, centerX, centerY + 12);
+            ctx.fillText(initial, centerX, centerY);
+        }
+
+        function drawSignatureArea(ctx, template, baseY) {
+            // President signature line
+            ctx.strokeStyle = template.borderColor;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(600, baseY + 40);
+            ctx.lineTo(850, baseY + 40);
+            ctx.stroke();
+            
+            ctx.fillStyle = template.accentColor;
+            ctx.font = fontsLoaded ? '18px "Crimson Text", serif' : '18px serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('President', 725, baseY + 60);
+
+            // Dean signature line
+            ctx.beginPath();
+            ctx.moveTo(900, baseY + 40);
+            ctx.lineTo(1150, baseY + 40);
+            ctx.stroke();
+            
+            ctx.fillText('Dean', 1025, baseY + 60);
         }
 
         function drawOfficialSeal(ctx, template, x, y) {
@@ -511,42 +630,98 @@
             
             // Seal text
             ctx.fillStyle = template.secondaryColor;
-            ctx.font = 'bold 12px serif';
+            ctx.font = fontsLoaded ? 'bold 12px "Crimson Text", serif' : 'bold 12px serif';
             ctx.textAlign = 'center';
-            ctx.fillText('OFFICIAL', x, y - 5);
+            ctx.textBaseline = 'middle';
+            ctx.fillText('OFFICIAL', x, y - 8);
             ctx.fillText('SEAL', x, y + 8);
         }
 
         function downloadCertificate() {
-            const canvas = document.getElementById('certificateCanvas');
-            const link = document.createElement('a');
-            link.download = `${document.getElementById('recipientName').value.replace(/\s+/g, '_')}_Certificate.png`;
-            link.href = canvas.toDataURL('image/png', 1.0);
-            link.click();
+            if (!canvas) {
+                showStatus('Canvas not available for download', 'error');
+                return;
+            }
+
+            try {
+                const recipientName = document.getElementById('recipientName').value || 'Certificate';
+                const fileName = `${recipientName.replace(/\s+/g, '_')}_Certificate.png`;
+                
+                const link = document.createElement('a');
+                link.download = fileName;
+                link.href = canvas.toDataURL('image/png', 1.0);
+                link.click();
+                
+                showStatus('Certificate downloaded successfully!', 'success');
+            } catch (error) {
+                console.error('Download error:', error);
+                showStatus('Error downloading certificate', 'error');
+            }
         }
 
-        function downloadPDF() {
-            // For a simple PDF conversion, we'll use the canvas as an image in a new window
-            // In a real application, you might want to use a library like jsPDF
-            const canvas = document.getElementById('certificateCanvas');
-            const imgData = canvas.toDataURL('image/png', 1.0);
-            
-            const printWindow = window.open('', '', 'width=1200,height=800');
-            printWindow.document.write(`
-                <html>
-                <head><title>Certificate</title></head>
-                <body style="margin:0; display:flex; justify-content:center; align-items:center; min-height:100vh;">
-                    <img src="${imgData}" style="max-width:100%; max-height:100%;">
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
-            printWindow.print();
+        function printCertificate() {
+            if (!canvas) {
+                showStatus('Canvas not available for printing', 'error');
+                return;
+            }
+
+            try {
+                const imgData = canvas.toDataURL('image/png', 1.0);
+                const printWindow = window.open('', '', 'width=1200,height=800');
+                
+                printWindow.document.write(`
+                    <html>
+                    <head>
+                        <title>Certificate</title>
+                        <style>
+                            body { margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+                            img { max-width: 100%; max-height: 100%; }
+                        </style>
+                    </head>
+                    <body>
+                        <img src="${imgData}" alt="Certificate">
+                    </body>
+                    </html>
+                `);
+                
+                printWindow.document.close();
+                printWindow.onload = function() {
+                    printWindow.print();
+                };
+                
+                showStatus('Opening print dialog...', 'success');
+            } catch (error) {
+                console.error('Print error:', error);
+                showStatus('Error preparing certificate for printing', 'error');
+            }
         }
 
-        // Initialize with default certificate
-        window.onload = function() {
-            generateCertificate();
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('status');
+            if (statusEl) {
+                statusEl.textContent = message;
+                statusEl.className = `status show ${type}`;
+                
+                // Auto-hide success messages
+                if (type === 'success') {
+                    setTimeout(() => {
+                        statusEl.classList.remove('show');
+                    }, 3000);
+                }
+            }
+            console.log(`Status (${type}): ${message}`);
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
         }
     </script>
 </body>
